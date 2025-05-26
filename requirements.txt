@@ -1,0 +1,5 @@
+Flask
+deepgram-sdk
+yt-dlp
+python-dotenv
+gunicorn
