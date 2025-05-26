@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
-from transcript import get_transcript  # Import your helper function
-
+from transcriber import get_transcript
 app = Flask(__name__)
 
 @app.route('/')
