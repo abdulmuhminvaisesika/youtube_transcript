@@ -1,6 +1,7 @@
 import yt_dlp
 import asyncio
 import time
+import os
 from deepgram import Deepgram
 
 AUDIO_FILE = "temp_audio.mp3"
@@ -12,7 +13,11 @@ def download_audio(url):
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
-        }]
+        }],
+        'quiet': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
@@ -41,4 +46,10 @@ def get_transcript(url, api_key):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     response = loop.run_until_complete(transcribe_audio(dg_client))
-    return format_transcript(response)
+    transcript = format_transcript(response)
+    
+    # Remove temp audio file to clean up
+    if os.path.exists(AUDIO_FILE):
+        os.remove(AUDIO_FILE)
+        
+    return transcript
