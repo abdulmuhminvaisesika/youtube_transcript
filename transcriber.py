@@ -17,7 +17,8 @@ def download_audio(url, filename_base):
         'quiet': False,  # Show logs for debugging
         'nocheckcertificate': True,
         'ignoreerrors': False,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'cookies': 'cookies.txt'  # ✅ Add this line to use cookies
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
@@ -44,29 +45,29 @@ def format_transcript(response):
 def get_transcript(url, api_key):
     # Generate unique filename base (no extension)
     temp_audio_file_base = str(uuid.uuid4())
-    
+
     # Download audio (yt-dlp will add .mp3)
     download_audio(url, temp_audio_file_base)
-    
+
     # Construct full filename with .mp3 extension
     temp_audio_file = temp_audio_file_base + ".mp3"
-    
+
     # Verify the audio file exists
     if not os.path.exists(temp_audio_file):
         raise FileNotFoundError(f"Audio file '{temp_audio_file}' was not created. Download may have failed.")
-    
+
     dg_client = Deepgram(api_key)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     response = loop.run_until_complete(transcribe_audio(dg_client, temp_audio_file))
-    
+
     transcript = format_transcript(response)
-    
+
     # Clean up temporary file
     try:
         os.remove(temp_audio_file)
         print(f"Deleted temporary audio file: {temp_audio_file}")
     except Exception as e:
         print(f"Warning: Could not delete temporary file {temp_audio_file}: {e}")
-        
+
     return transcript
