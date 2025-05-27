@@ -1,30 +1,30 @@
-
 import yt_dlp
 import asyncio
 import time
 import os
+import uuid
 from deepgram import Deepgram
 
-AUDIO_FILE = "temp_audio.mp3"
-
-def download_audio(url):
+def download_audio(url, filename_base):
+    print(f"Downloading audio to {filename_base} ...")
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': AUDIO_FILE,
+        'outtmpl': filename_base,  # No extension here; yt-dlp adds .mp3
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
         }],
-        'quiet': True,
+        'quiet': False,  # Show logs for debugging
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
+    print("Download completed.")
 
-async def transcribe_audio(dg_client):
-    with open(AUDIO_FILE, 'rb') as audio:
+async def transcribe_audio(dg_client, filename):
+    with open(filename, 'rb') as audio:
         source = {'buffer': audio, 'mimetype': 'audio/mp3'}
         response = await dg_client.transcription.prerecorded(source, {
             'punctuate': True,
@@ -42,15 +42,31 @@ def format_transcript(response):
     return formatted
 
 def get_transcript(url, api_key):
-    download_audio(url)
-    dg_client = Deepgram(api_key)  # Create Deepgram client dynamically
+    # Generate unique filename base (no extension)
+    temp_audio_file_base = str(uuid.uuid4())
+    
+    # Download audio (yt-dlp will add .mp3)
+    download_audio(url, temp_audio_file_base)
+    
+    # Construct full filename with .mp3 extension
+    temp_audio_file = temp_audio_file_base + ".mp3"
+    
+    # Verify the audio file exists
+    if not os.path.exists(temp_audio_file):
+        raise FileNotFoundError(f"Audio file '{temp_audio_file}' was not created. Download may have failed.")
+    
+    dg_client = Deepgram(api_key)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(transcribe_audio(dg_client))
+    response = loop.run_until_complete(transcribe_audio(dg_client, temp_audio_file))
+    
     transcript = format_transcript(response)
     
-    # Remove temp audio file to clean up
-    if os.path.exists(AUDIO_FILE):
-        os.remove(AUDIO_FILE)
+    # Clean up temporary file
+    try:
+        os.remove(temp_audio_file)
+        print(f"Deleted temporary audio file: {temp_audio_file}")
+    except Exception as e:
+        print(f"Warning: Could not delete temporary file {temp_audio_file}: {e}")
         
     return transcript
