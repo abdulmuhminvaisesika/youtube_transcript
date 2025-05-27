@@ -9,16 +9,17 @@ def download_audio(url, filename_base):
     print(f"Downloading audio to {filename_base} ...")
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': filename_base,  # No extension here; yt-dlp adds .mp3
+        'outtmpl': filename_base,  # yt-dlp will add the .mp3 extension automatically
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
         }],
+        'verbose': True,
         'quiet': False,  # Show logs for debugging
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'cookies': 'cookies.txt'  # ✅ Add this line to use cookies
+        'cookiefile': 'cookies.txt',  # Use browser cookies only
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
